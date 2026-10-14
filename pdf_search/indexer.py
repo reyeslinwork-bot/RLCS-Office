@@ -24,6 +24,28 @@ from PIL import Image
 # A page whose text layer has fewer characters than this is treated as a scan.
 MIN_TEXT_CHARS = 20
 
+# On Windows, Tesseract is often installed but not on PATH; look in the usual places.
+if os.name == "nt" and not shutil.which("tesseract"):
+    for _base in (os.environ.get("ProgramFiles", r"C:\Program Files"),
+                  os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+                  os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs")):
+        _exe = os.path.join(_base, "Tesseract-OCR", "tesseract.exe")
+        if os.path.isfile(_exe):
+            pytesseract.pytesseract.tesseract_cmd = _exe
+            break
+
+
+def check_tesseract(lang):
+    """Fail early with a readable message instead of once per file."""
+    try:
+        pytesseract.get_tesseract_version()
+    except pytesseract.TesseractNotFoundError:
+        raise SystemExit("Tesseract OCR was not found. Install it (see README.md) and try again.")
+    missing = set(lang.split("+")) - set(pytesseract.get_languages())
+    if missing:
+        raise SystemExit(f"Tesseract language data missing: {', '.join(sorted(missing))}. "
+                         "Re-run the Tesseract installer and tick these languages.")
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
     id        INTEGER PRIMARY KEY,
@@ -135,13 +157,17 @@ def find_pdfs(root, exclude=None):
 def build_index(folders, db_path, lang="eng", dpi=300, workers=None,
                 force_ocr=False, tokenizer="unicode61 remove_diacritics 2",
                 prune=True, searchable_dir=None, log=print):
+    check_tesseract(lang)
     conn = connect(db_path, tokenizer)
     if searchable_dir:
         searchable_dir = Path(searchable_dir).resolve()
-    pdfs = [pr for folder in folders for pr in find_pdfs(folder, exclude=searchable_dir)]
-
     known = {row[0]: (row[1], row[2], row[3], row[4]) for row in
              conn.execute("SELECT path, id, sha256, mtime, searchable_path FROM documents")}
+
+    # Never index our own searchable copies, even on a run without --searchable-dir.
+    copies = {v[3] for v in known.values() if v[3]}
+    pdfs = [(p, root) for folder in folders for p, root in find_pdfs(folder, exclude=searchable_dir)
+            if str(p) not in copies]
 
     def out_path(p, root):
         if not searchable_dir:

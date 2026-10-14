@@ -12,7 +12,7 @@ are instant and show the file, the page number and a highlighted snippet.
 ## Setup
 
 1. Install Tesseract OCR, plus the language packs you need:
-   - **Windows:** download the installer from https://github.com/UB-Mannheim/tesseract/wiki, select extra languages during the install, and add `C:\Program Files\Tesseract-OCR` to your `PATH`.
+   - **Windows:** download and run the installer from https://github.com/UB-Mannheim/tesseract/wiki. You can keep the default install folder; the tool finds it automatically.
    - **macOS:** `brew install tesseract tesseract-lang`
    - **Ubuntu/Debian:** `sudo apt install tesseract-ocr tesseract-ocr-chi-sim` (and other `tesseract-ocr-<lang>` packages as needed)
 2. Install the Python packages (Python 3.9+):
