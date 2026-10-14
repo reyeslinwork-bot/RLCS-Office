@@ -24,6 +24,10 @@ def main(argv=None):
     p.add_argument("--trigram", action="store_true",
                    help="use the trigram tokenizer (substring matching; recommended for Chinese/Japanese). "
                         "Only takes effect when the database is first created.")
+    p.add_argument("--searchable-dir", metavar="DIR",
+                   help="also write a copy of each PDF with an invisible OCR text layer into DIR "
+                        "(same sub-folder layout), so Ctrl+F works in any PDF viewer. "
+                        "Originals are never modified.")
     p.add_argument("--no-prune", action="store_true", help="keep index entries for PDFs that no longer exist")
 
     p = sub.add_parser("search", help="search the index from the command line")
@@ -43,7 +47,8 @@ def main(argv=None):
         tok = "trigram" if args.trigram else "unicode61 remove_diacritics 2"
         conn = indexer.build_index(args.folders, args.db, lang=args.lang, dpi=args.dpi,
                                    workers=args.workers, force_ocr=args.force_ocr,
-                                   tokenizer=tok, prune=not args.no_prune)
+                                   tokenizer=tok, prune=not args.no_prune,
+                                   searchable_dir=args.searchable_dir)
         print(stats(conn))
         return 0
 

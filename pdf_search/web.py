@@ -84,11 +84,15 @@ def make_handler(db_path):
                 elif url.path.startswith("/pdf/"):
                     doc_id = int(url.path.split("/")[2])
                     with self._conn() as conn:
-                        row = conn.execute("SELECT path FROM documents WHERE id=?", (doc_id,)).fetchone()
-                    if not row or not Path(row[0]).is_file():
+                        row = conn.execute("SELECT path, searchable_path FROM documents WHERE id=?",
+                                           (doc_id,)).fetchone()
+                    # Only files registered in the index can be served. Prefer the
+                    # searchable copy so the viewer can highlight the search term.
+                    files = [Path(f) for f in (row or ()) if f]
+                    files = [f for f in reversed(files) if f.is_file()]
+                    if not files:
                         return self._send(404, "text/plain", b"Not found")
-                    # Only files registered in the index can be served.
-                    self._send(200, "application/pdf", Path(row[0]).read_bytes())
+                    self._send(200, "application/pdf", files[0].read_bytes())
                 else:
                     self._send(404, "text/plain", b"Not found")
             except sqlite3.OperationalError as e:

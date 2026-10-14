@@ -7,6 +7,7 @@ are instant and show the file, the page number and a highlighted snippet.
 - Pages that already have a text layer (digital PDFs, or scans that were OCR'd before) are read directly. Only image-only pages are OCR'd.
 - Re-running `index` only processes new or changed files, and drops files that were deleted.
 - You can search from the command line or from a local web page. Clicking a result opens the PDF at the matching page.
+- Optionally, it saves a **searchable copy** of every PDF. The copy looks exactly like the scan, but you can use Ctrl+F and copy-paste in any PDF viewer. Your original files are never changed.
 
 ## Setup
 
@@ -25,8 +26,8 @@ are instant and show the file, the page number and a highlighted snippet.
 # 1. Build the index (OCR runs here; it takes a while the first time)
 python -m pdf_search index "D:/Scans" "D:/Archive/2023"
 
-# Documents not in English? Name the Tesseract language(s):
-python -m pdf_search index "D:/Scans" --lang eng+chi_tra
+# Also save searchable copies of every PDF (same sub-folder layout)
+python -m pdf_search index "D:/Scans" --searchable-dir "D:/Scans-searchable"
 
 # 2a. Search from the terminal
 python -m pdf_search search invoice acme
@@ -36,7 +37,16 @@ python -m pdf_search search '"purchase order" 2023'
 python -m pdf_search serve
 ```
 
-Re-run the same `index` command whenever you add more scans.
+Re-run the same `index` command whenever you add more scans. Only new or
+changed files are processed. A searchable copy you deleted is recreated.
+
+### Searchable copies
+
+With `--searchable-dir`, each scanned page keeps its original image. Tesseract's
+recognised text is laid over it as invisible text, the same technique scanners
+and Adobe Acrobat use. Pages that already contained text are left alone.
+When `--searchable-dir` is used, the web UI opens these copies, so your browser's
+PDF viewer can jump to and highlight the word you searched for.
 
 ### Search syntax
 
@@ -52,6 +62,7 @@ Re-run the same `index` command whenever you add more scans.
 | Option | What it does |
 |--------|--------------|
 | `--db FILE` | Where the index is stored (default `pdf_index.db`). Put it before the command, e.g. `python -m pdf_search --db office.db search ...` |
+| `--searchable-dir DIR` | Also write searchable copies of the PDFs into `DIR` |
 | `--lang` | Tesseract language codes, e.g. `eng`, `chi_sim`, `chi_tra`, `eng+chi_sim` |
 | `--trigram` | Substring matching. Use it for Chinese/Japanese text, which has no spaces between words. It applies only when a new database is created. |
 | `--dpi` | OCR resolution (default 300). Raise it for small print; lower it for speed. |
